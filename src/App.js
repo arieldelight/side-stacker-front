@@ -10,12 +10,13 @@ function App() {
   const [errorMessage, setErrorMessage] = useState("");
   const [gameState, setGameState] = useState(createGameState());
   const gameStateRef = useRef(gameState);
-  const serverContactedRef = useRef(false);
 
-  async function contactServer() {
+  async function contactServer(gameType) {
     setNetworkState("connecting...");
     try {
-      const { data } = await axios.post("http://localhost:3000/games");
+      const { data } = await axios.post(
+        `http://localhost:3000/games?gameType=${gameType}`
+      );
       setGameState((originalGameState) =>
         updateGameState(originalGameState, data)
       );
@@ -47,15 +48,16 @@ function App() {
     return { gameId, playerId, playerColor, board, status };
   }
 
-  useEffect(() => {
-    if (serverContactedRef.current) {
-      return;
+  function startGame() {
+    const gameTypes = document.getElementsByName("gameType");
+    for (const gameType of gameTypes) {
+      if (gameType.checked) {
+        contactServer(gameType.value).then((response) => {
+          setInterval(() => refreshFromServer(response), 2000);
+        });
+      }
     }
-    serverContactedRef.current = true;
-    contactServer().then((response) => {
-      setInterval(() => refreshFromServer(response), 2000);
-    });
-  }, []);
+  }
 
   return (
     <Context.Provider
@@ -67,6 +69,25 @@ function App() {
       <div className="App">
         <img src={logo} className="App-logo" alt="logo" />
 
+        <div>
+          <input
+            id="gameType"
+            name="gameType"
+            type="radio"
+            value="single player"
+          />
+          <label>single player</label>
+        </div>
+        <div>
+          <input
+            id="gameType"
+            name="gameType"
+            type="radio"
+            value="multi player"
+          />
+          <label>multi player</label>
+        </div>
+        <button onClick={() => startGame()}>start!</button>
         <div>
           <p>
             Network: {networkState}{" "}
